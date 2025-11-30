@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hotmail Checker - Web UI</title>
+  <style>
+    body { font-family: Arial; padding: 18px; direction: rtl; background:#f6f8fa; }
+    .card { background:#fff; padding:16px; border-radius:8px; max-width:900px; margin:auto; }
+    input, select { width:100%; padding:8px; margin-top:6px; box-sizing:border-box; }
+    button { margin-top:12px; padding:10px; background:#0b5cff; color:#fff; border:0; cursor:pointer; width:100%; }
+    table { width:100%; border-collapse:collapse; margin-top:20px; }
+    th, td { padding:8px; border-bottom:1px solid #eee; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>🔍 فحص بريد Hotmail</h2>
+
+    <label>البريد الإلكتروني</label>
+    <input id="email" type="email" placeholder="you@example.com" />
+
+    <label>كلمة المرور أو App Password</label>
+    <input id="password" type="password" />
+
+    <label>المجلد</label>
+    <input id="folder" value="INBOX" />
+
+    <label>فقط غير المقروء</label>
+    <select id="unseen">
+      <option value="true">نعم</option>
+      <option value="false">لا</option>
+    </select>
+
+    <label>عدد الرسائل</label>
+    <input id="limit" type="number" value="20" />
+
+    <label>فلترة حسب المرسل</label>
+    <input id="filter_from" />
+
+    <label>فلترة حسب الموضوع</label>
+    <input id="filter_subject" />
+
+    <button onclick="checkMail()">فحص البريد</button>
+
+    <p id="status"></p>
+
+    <table id="resultTable" hidden>
+      <thead>
+        <tr><th>من</th><th>التاريخ</th><th>الموضوع</th><th>مقتطف</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+<script>
+async function checkMail() {
+  const status = document.getElementById('status');
+  status.textContent = "⏳ جاري الفحص...";
+
+  const payload = {
+    username: document.getElementById('email').value,
+    password: document.getElementById('password').value,
+    folder: document.getElementById('folder').value,
+    unseen_only: document.getElementById('unseen').value === "true",
+    limit: parseInt(document.getElementById('limit').value),
+    filter_from: document.getElementById('filter_from').value,
+    filter_subject: document.getElementById('filter_subject').value
+  };
+
+  const res = await fetch('/check', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    status.textContent = "❌ " + data.error;
+    return;
+  }
+
+  status.textContent = "تم جلب " + data.messages.length + " رسالة.";
+
+  const tbody = document.querySelector('#resultTable tbody');
+  tbody.innerHTML = '';
+
+  data.messages.forEach(m => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${m.from}</td>
+      <td>${m.date}</td>
+      <td>${m.subject}</td>
+      <td>${m.preview}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('resultTable').hidden = false;
+}
+</script>
+
+</body>
+</html>
